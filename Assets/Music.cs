@@ -13,6 +13,9 @@ public class Music : MonoBehaviour
     public int StrumsPerBeat = 2;
     public float BeatsPerMinute = 120f;
     public float UpStrumOffset = -0.125f;
+    public float MissUpStrumChance = 0.25f;
+    public float MissDownStrumChance = 0.05f;
+    public float OffBeatVolume = 0.6f;
 
     private float MeasureLength;
     private float MeasureTime;
@@ -44,18 +47,29 @@ public class Music : MonoBehaviour
         for(int i = 0; i < strums; i++)
         {
             pattern[i].play = true;
-            if( i % 2 == 0)
+            if (0 == i)
             {
+                pattern[i].volume = 1.0f;
                 pattern[i].UpStrum = false;
                 pattern[i].offset = 0f;
             }
             else
             {
-                pattern[i].UpStrum = true;
-                pattern[i].offset = UpStrumOffset * (beatLength/StrumsPerBeat);
+                pattern[i].volume = OffBeatVolume;
+                if( i % 2 == 0)
+                {
+                    pattern[i].UpStrum = false;
+                    pattern[i].offset = 0f;
+                    pattern[i].play = !(Random.value < MissDownStrumChance);// || !pattern[i-1].play; 
+                }
+                else
+                {
+                    pattern[i].UpStrum = true;
+                    pattern[i].offset = UpStrumOffset * (beatLength/StrumsPerBeat);
+                    pattern[i].play = !(Random.value < MissUpStrumChance) || !pattern[i-1].play;
+                }
             }
-            pattern[i].volume = (i == 0) ? 1.0f:0.7f;
-            Debug.Log(i + " volume: " + pattern[i].volume);
+           // Debug.Log(i + " volume: " + pattern[i].volume);
         }
 
         return pattern;
@@ -115,13 +129,13 @@ public class Music : MonoBehaviour
                 {
                     //play upstrum
                     audio.PlayOneShot(UpStrum, thisStrum[StrumNumber].volume);
-                    Debug.Log("up " + audio.isPlaying);
+                   // Debug.Log("up " + audio.isPlaying);
                 }
                 else
                 {
                     //play downstrum
                     audio.PlayOneShot(DownStrum, thisStrum[StrumNumber].volume);
-                    Debug.Log("down " + audio.isPlaying);
+                  //  Debug.Log("down " + audio.isPlaying);
                 }
 
             }
