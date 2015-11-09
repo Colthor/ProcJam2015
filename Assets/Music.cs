@@ -77,7 +77,7 @@ public class Music : MonoBehaviour
 
     void CalcMeasureLength()
     {
-        MeasureLength = 60f/BeatsPerMinute * (float)BeatsPerMeasure;
+        MeasureLength = 60f/BeatsPerMinute * BeatsPerMeasure;
     }
 
     // Use this for initialization
