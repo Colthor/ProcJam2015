@@ -34,7 +34,7 @@ public class Music : MonoBehaviour
     {
         public bool play;
         public bool UpStrum;
-        public float offset;
+        public float time;
         public float volume;
     }
 
@@ -44,14 +44,15 @@ public class Music : MonoBehaviour
         Strum[] pattern = new Strum[strums];
         float beatLength = 60f/bpm;
 
-        for(int i = 0; i < strums; i++)
+        float strumLength = beatLength / StrumsPerBeat;
+        for (int i = 0; i < strums; i++)
         {
             pattern[i].play = true;
+            pattern[i].time = i * strumLength;
             if (0 == i)
             {
                 pattern[i].volume = 1.0f;
                 pattern[i].UpStrum = false;
-                pattern[i].offset = 0f;
             }
             else
             {
@@ -59,13 +60,12 @@ public class Music : MonoBehaviour
                 if( i % 2 == 0)
                 {
                     pattern[i].UpStrum = false;
-                    pattern[i].offset = 0f;
                     pattern[i].play = !(Random.value < MissDownStrumChance);// || !pattern[i-1].play; 
                 }
                 else
                 {
                     pattern[i].UpStrum = true;
-                    pattern[i].offset = UpStrumOffset * (beatLength/StrumsPerBeat);
+                    pattern[i].time += UpStrumOffset * (beatLength/StrumsPerBeat);
                     pattern[i].play = !(Random.value < MissUpStrumChance) || !pattern[i-1].play;
                 }
             }
@@ -119,8 +119,8 @@ public class Music : MonoBehaviour
     void CheckDoStrum()
     {
         if (StrumNumber > thisStrum.GetUpperBound(0)) return;
-        float strumLength = MeasureLength / ((float)BeatsPerMeasure * StrumsPerBeat);
-        if(MeasureTime >= StrumNumber * strumLength + thisStrum[StrumNumber].offset)
+        //float strumLength = MeasureLength / ((float)BeatsPerMeasure * StrumsPerBeat);
+        if(MeasureTime >=  thisStrum[StrumNumber].time)
         {
             if(thisStrum[StrumNumber].play)
             {
