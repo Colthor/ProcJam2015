@@ -1,13 +1,10 @@
 ﻿using UnityEngine;
-using System.Collections;
+//using System.Collections;
+using ProcJammer;
 
-
-[RequireComponent(typeof(AudioSource))]
+[RequireComponent(typeof (AudioSource))]
 public class Music : MonoBehaviour
 {
-
-    public AudioClip UpStrum;
-    public AudioClip DownStrum;
 
     public int BeatsPerMeasure = 4;
     public int StrumsPerBeat = 2;
@@ -17,62 +14,62 @@ public class Music : MonoBehaviour
     public float MissDownStrumChance = 0.05f;
     public float OffBeatVolume = 0.6f;
 
+    public UnityEngine.Audio.AudioMixerGroup OutputTo;
+
     private float MeasureLength;
     private float MeasureTime;
     private int MeasureNumber;
-    private int StrumNumber;
-
-    Strum[] thisStrum;
-    Strum[] nextStrum;
-
-    //private float NextStrum;
-    //private bool WasUp = true;
+    private bool NewMeasurePrepped = false;
 
 
+    System.Collections.Generic.List<Instrument> m_Instruments = new System.Collections.Generic.List<Instrument>();
 
-    private struct Strum
+
+    Chord LoadChord(string name)
     {
-        public bool play;
-        public bool UpStrum;
-        public float time;
-        public float volume;
+        AudioClip[] ChordSegments = new AudioClip[2];
+        ChordSegments[0] = Resources.Load<AudioClip>("sound/chords/" + name.ToLower() + "_down");
+        ChordSegments[1] = Resources.Load<AudioClip>("sound/chords/" + name.ToLower() + "_up");
+        return new Chord(name, ChordSegments );
+
     }
 
-    Strum[] GenerateStrumPattern(int beats, float bpm)
+    void CreateInstruments()
     {
-        int strums = beats * StrumsPerBeat;
-        Strum[] pattern = new Strum[strums];
-        float beatLength = 60f/bpm;
+        Instrument guitar = new Instrument("rhythmGuitar", gameObject.GetComponent<AudioSource>());
 
-        float strumLength = beatLength / StrumsPerBeat;
-        for (int i = 0; i < strums; i++)
-        {
-            pattern[i].play = true;
-            pattern[i].time = i * strumLength;
-            if (0 == i)
-            {
-                pattern[i].volume = 1.0f;
-                pattern[i].UpStrum = false;
-            }
-            else
-            {
-                pattern[i].volume = OffBeatVolume;
-                if( i % 2 == 0)
-                {
-                    pattern[i].UpStrum = false;
-                    pattern[i].play = !(Random.value < MissDownStrumChance);// || !pattern[i-1].play; 
-                }
-                else
-                {
-                    pattern[i].UpStrum = true;
-                    pattern[i].time += UpStrumOffset * (beatLength/StrumsPerBeat);
-                    pattern[i].play = !(Random.value < MissUpStrumChance) || !pattern[i-1].play;
-                }
-            }
-           // Debug.Log(i + " volume: " + pattern[i].volume);
-        }
+        Chord[] C_Chords = new Chord[6];
+        C_Chords[0] = LoadChord("C");
+        C_Chords[1] = LoadChord("Dm");
+        C_Chords[2] = LoadChord("Em");
+        C_Chords[3] = LoadChord("F");
+        C_Chords[4] = LoadChord("G");
+        C_Chords[5] = LoadChord("Am");
 
-        return pattern;
+        guitar.AddKey("C", C_Chords);
+
+        Chord[] Am_Chords = new Chord[6];
+        Am_Chords[0] = LoadChord("Am");
+        Am_Chords[1] = LoadChord("C");
+        Am_Chords[2] = LoadChord("Dm");
+        Am_Chords[3] = LoadChord("E");
+        Am_Chords[4] = LoadChord("F");
+        Am_Chords[5] = LoadChord("G");
+
+        guitar.AddKey("Am", Am_Chords);
+
+        m_Instruments.Add(guitar);
+    }
+
+    void SetInstrumentValues(Instrument i)
+    {
+        i.m_BeatsPerMeasure = BeatsPerMeasure;
+        i.m_StrumsPerBeat = StrumsPerBeat;
+        i.m_BeatsPerMinute = BeatsPerMinute;
+        i.m_UpStrumOffset = UpStrumOffset;
+        i.m_MissUpStrumChance = MissUpStrumChance;
+        i.m_MissDownStrumChance = MissDownStrumChance;
+        i.m_OffBeatVolume = OffBeatVolume;
     }
 
     void CalcMeasureLength()
@@ -83,13 +80,9 @@ public class Music : MonoBehaviour
     // Use this for initialization
     void Start ()
     {
-        //NextStrum = Time.time + 0.2f;
+        CreateInstruments();
         CalcMeasureLength();
-        MeasureTime = 0f;
-        thisStrum = GenerateStrumPattern(BeatsPerMeasure, BeatsPerMinute);
-        nextStrum = null;
         MeasureNumber = 0;
-        StrumNumber = 0;
     }
 
     // Update is called once per frame
@@ -100,74 +93,41 @@ public class Music : MonoBehaviour
 
     void CheckNewMeasure()
     {
-        if(MeasureTime > 0.8f*MeasureLength && null == nextStrum )
-        {
-            nextStrum = GenerateStrumPattern(BeatsPerMeasure, BeatsPerMinute);
-        }
 
-        if(MeasureTime >= MeasureLength)
+        if (MeasureTime >= MeasureLength)
         {
-            thisStrum = nextStrum;
-            nextStrum = null;
             MeasureTime -= MeasureLength;
             CalcMeasureLength();
             MeasureNumber++;
-            StrumNumber = 0;
-        }
-    }
-
-    void CheckDoStrum()
-    {
-        if (StrumNumber > thisStrum.GetUpperBound(0)) return;
-        //float strumLength = MeasureLength / ((float)BeatsPerMeasure * StrumsPerBeat);
-        if(MeasureTime >=  thisStrum[StrumNumber].time)
-        {
-            if(thisStrum[StrumNumber].play)
+            foreach (Instrument i in m_Instruments)
             {
-                AudioSource audio = gameObject.GetComponent<AudioSource>();
-                if (thisStrum[StrumNumber].UpStrum)
-                {
-                    //play upstrum
-                    audio.PlayOneShot(UpStrum, thisStrum[StrumNumber].volume);
-                   // Debug.Log("up " + audio.isPlaying);
-                }
-                else
-                {
-                    //play downstrum
-                    audio.PlayOneShot(DownStrum, thisStrum[StrumNumber].volume);
-                  //  Debug.Log("down " + audio.isPlaying);
-                }
-
+                i.StartNextMeasure();
             }
-            StrumNumber++;
+            NewMeasurePrepped = false;
         }
     }
+
 
     void FixedUpdate()
     {
         MeasureTime += Time.fixedDeltaTime;
 
-        CheckNewMeasure();
-        CheckDoStrum();
+        if (MeasureTime > 0.8f * MeasureLength && false == NewMeasurePrepped)
+        {
+            foreach (Instrument i in m_Instruments)
+            {
+                SetInstrumentValues(i);
+                i.PrepNextMeasure();
+            }
+            NewMeasurePrepped = true;
+        }
 
-        //if (Time.time > NextStrum)
-        //{
-        //    AudioSource audio = gameObject.GetComponent<AudioSource>();
-        //    NextStrum += 0.25f;
-        //    if(WasUp)
-        //    {
-        //        //play downstrum
-        //        audio.PlayOneShot(DownStrum);
-        //        Debug.Log("down " + audio.isPlaying);
-        //    }
-        //    else
-        //    {
-        //        if(Random.value < 0.5f)
-        //        //play upstrum
-        //        audio.PlayOneShot(UpStrum);
-        //        Debug.Log("up " + audio.isPlaying);
-        //    }
-        //    WasUp = !WasUp;
-        //}
+        CheckNewMeasure();
+
+        foreach (Instrument i in m_Instruments)
+        {
+            i.CheckDoStrum(MeasureTime);
+        }
+
     }
 }
