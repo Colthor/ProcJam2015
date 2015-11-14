@@ -52,11 +52,24 @@ public class Music : MonoBehaviour
         Am_Chords[0] = LoadChord("Am");
         Am_Chords[1] = LoadChord("C");
         Am_Chords[2] = LoadChord("Dm");
-        Am_Chords[3] = LoadChord("E");
+        Am_Chords[3] = LoadChord("Em");
         Am_Chords[4] = LoadChord("F");
         Am_Chords[5] = LoadChord("G");
 
         guitar.AddKey("Am", Am_Chords);
+
+        SongPartSpec[] sps = new SongPartSpec[3];
+        sps[0].Name = "verse";
+        sps[0].MinChords = 4;
+        sps[0].MaxChords = 4;
+        sps[1].Name = "chorus";
+        sps[1].MinChords = 3;
+        sps[1].MaxChords = 5;
+        sps[2].Name = "bridge";
+        sps[2].MinChords = 2;
+        sps[2].MaxChords = 4;
+        guitar.GenerateSongParts(sps);
+        guitar.InitWithSegment("verse");
 
         m_Instruments.Add(guitar);
     }
@@ -94,10 +107,9 @@ public class Music : MonoBehaviour
     void CheckNewMeasure()
     {
 
-        if (MeasureTime >= MeasureLength)
+        if (MeasureTime >= 1f)//MeasureLength)
         {
-            MeasureTime -= MeasureLength;
-            CalcMeasureLength();
+            MeasureTime -= 1f;// MeasureLength;
             MeasureNumber++;
             foreach (Instrument i in m_Instruments)
             {
@@ -110,14 +122,15 @@ public class Music : MonoBehaviour
 
     void FixedUpdate()
     {
-        MeasureTime += Time.fixedDeltaTime;
+        CalcMeasureLength();
+        MeasureTime += Time.fixedDeltaTime/MeasureLength;
 
-        if (MeasureTime > 0.8f * MeasureLength && false == NewMeasurePrepped)
+        if (MeasureTime > 0.8f && !NewMeasurePrepped) // * MeasureLength && false == NewMeasurePrepped)
         {
             foreach (Instrument i in m_Instruments)
             {
                 SetInstrumentValues(i);
-                i.PrepNextMeasure();
+                i.PrepNextMeasure("verse");
             }
             NewMeasurePrepped = true;
         }
