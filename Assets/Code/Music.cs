@@ -51,6 +51,7 @@ public class Music : MonoBehaviour
 
     void CreateSong()
     {
+
         m_SongSpec = new SongPartSpec[5];
         m_SongSpec[0].Name = "verse";
         m_SongSpec[0].MinChords = 4;
@@ -130,6 +131,21 @@ public class Music : MonoBehaviour
         MeasureLength = 60f/BeatsPerMinute * BeatsPerMeasure;
     }
 
+    public void StartNewSong()
+    {
+        CreateSong();
+        CalcMeasureLength();
+        MeasureNumber = 0;
+        MeasureTime = 0.0f;
+        NewMeasurePrepped = false;
+
+        foreach (Instrument i in m_Instruments)
+        {
+            SetInstrumentValues(i);
+            i.PrepNextMeasure(m_SongStructure[m_CurrentPart].section);
+        }
+    }
+
     // Use this for initialization
     void Start ()
     {
@@ -171,19 +187,24 @@ public class Music : MonoBehaviour
         }
     }
 
+    void SetNextMeasure()
+    {
+        foreach (Instrument i in m_Instruments)
+        {
+            SetInstrumentValues(i);
+            i.PrepNextMeasure(m_SongStructure[m_CurrentPart].section);
+        }
+    }
+
     void FixedUpdate()
     {
         CalcMeasureLength();
         MeasureTime += Time.fixedDeltaTime/MeasureLength;
 
-        if (MeasureTime > 0.8f && !NewMeasurePrepped) // * MeasureLength && false == NewMeasurePrepped)
+        if (MeasureTime > 0.8f && !NewMeasurePrepped)
         {
             AdvanceSong();
-            foreach (Instrument i in m_Instruments)
-            {
-                SetInstrumentValues(i);
-                i.PrepNextMeasure(m_SongStructure[m_CurrentPart].section);
-            }
+            SetNextMeasure();
             NewMeasurePrepped = true;
         }
 

@@ -57,9 +57,7 @@ namespace ProcJammer
         public int m_ChordsPerKey = 6;
 
         private string m_name;
-
-        //private float m_MeasureLength;
-        //private float m_MeasureTime;
+        
         private int m_MeasureNumber;
         private int m_StrumNumber;
         private string m_CurrentKey = "C";
@@ -88,8 +86,7 @@ namespace ProcJammer
             Debug.Log(m_name + " created");
             m_audio = AudioToUse;
             m_name = instrumentName;
-            //CalcMeasureLength();
-            m_thisStrum = GenerateStrumPattern(m_BeatsPerMeasure);//, m_BeatsPerMinute);
+            m_thisStrum = GenerateStrumPattern(m_BeatsPerMeasure);
             m_nextStrum = null;
             m_MeasureNumber = 0;
             m_StrumNumber = 0;
@@ -98,6 +95,8 @@ namespace ProcJammer
 
         public void GenerateSongParts(SongPartSpec[] specs)
         {
+            m_songParts.Clear();
+
             foreach(SongPartSpec sps in specs)
             {
                 Strum[] strumPattern;
@@ -127,6 +126,8 @@ namespace ProcJammer
             m_thisStrum = m_songParts[m_CurrentSegment].StrumPattern;
             m_ChordProgression = m_songParts[m_CurrentSegment].ChordProgression;
             m_CurrentChordIndex = m_ChordProgression[m_ChordProgIndex];
+
+            Debug.Log(m_name + " initialised with segment " + m_CurrentSegment);
         }
 
         public void AddKey(string keyName, Chord[] chords)
@@ -155,15 +156,13 @@ namespace ProcJammer
             return chords;
         }
 
-        Strum[] GenerateStrumPattern(int beats)//, float bpm)
+        Strum[] GenerateStrumPattern(int beats)
         {
             Debug.Log(m_name + " GenerateStrumPattern()");
             int strums = beats * m_StrumsPerBeat;
             Strum[] pattern = new Strum[strums];
-            //float beatLength = 60f/bpm;
             float strumLength = 1f / strums;
-
-            //float strumLength = beatLength / m_StrumsPerBeat;
+            
             for (int i = 0; i < strums; i++)
             {
                 pattern[i].play = true;
@@ -184,20 +183,14 @@ namespace ProcJammer
                     else
                     {
                         pattern[i].Segment = 1;
-                        pattern[i].time += m_UpStrumOffset * strumLength; // (beatLength/m_StrumsPerBeat);
-                        pattern[i].play = !(Random.value < m_MissUpStrumChance) || !pattern[i-1].play;
+                        pattern[i].time += m_UpStrumOffset * strumLength;
+                        pattern[i].play = !(Random.value < m_MissUpStrumChance);// || !pattern[i-1].play; //the commented out bit prevents no upstrum after no downstrum. Wanted?
                     }
                 }
-               // Debug.Log(i + " volume: " + pattern[i].volume);
             }
 
             return pattern;
         }
-
-       /* void CalcMeasureLength()
-        {
-            m_MeasureLength = 60f/ m_BeatsPerMinute * m_BeatsPerMeasure;
-        }*/
 
         void SetChordToPlay()
         {
@@ -212,21 +205,18 @@ namespace ProcJammer
                 m_CurrentSegment = segment;
                 m_ResetChordProg = true;
                 m_nextStrum = m_songParts[segment].StrumPattern;
-
+                Debug.Log( m_name + " playing segment " + m_CurrentSegment);
             }
             else
             {
                 m_nextStrum = m_thisStrum;
             }
-            //Debug.Log(m_name + " Generating strum:");// GenerateStrumPattern(m_BeatsPerMeasure);//, m_BeatsPerMinute);
         }
 
         public void StartNextMeasure()
         {
-            //Debug.Log(m_name + " New measure:");
             m_thisStrum = m_nextStrum;
             m_nextStrum = null;
-            //CalcMeasureLength();
             m_MeasureNumber++;
             m_StrumNumber = 0;
             if (m_ResetChordProg)
@@ -238,22 +228,11 @@ namespace ProcJammer
             }
             else
             {
-                m_ChordProgIndex++; // = (m_ChordProgIndex + 1) % (m_ChordProgression.GetUpperBound(0)+1);
+                m_ChordProgIndex++;
                 if (m_ChordProgIndex > m_ChordProgression.GetUpperBound(0)) m_ChordProgIndex = 0; //modulo doesn't work if upper=0.
             }
-            m_CurrentChordIndex = m_ChordProgression[m_ChordProgIndex];// Random.Range(0, 5);
-           /* if (Random.value < 0.1f)
-            {
-                if ("C" == m_CurrentKey)
-                {
-                    m_CurrentKey = "Am";
-                }
-                else
-                {
-                    m_CurrentKey = "C";
-                }
-                Debug.Log("KEY CHANGE!!! For " + m_name + " to " + m_CurrentKey);
-            }*/
+            m_CurrentChordIndex = m_ChordProgression[m_ChordProgIndex];
+
             SetChordToPlay();
         }
 
@@ -261,9 +240,6 @@ namespace ProcJammer
 
         public void CheckDoStrum(float MeasureProportion)
         {
-            //Debug.Log(m_name + " CheckDoStrum()");
-            //CalcMeasureLength();
-            //float MeasureProportion = MeasureTime / m_MeasureLength;
 
             if (m_StrumNumber > m_thisStrum.GetUpperBound(0)) return;
             if (MeasureProportion >= m_thisStrum[m_StrumNumber].time)
@@ -271,8 +247,6 @@ namespace ProcJammer
                 if (null == m_CurrentChord) SetChordToPlay();
                 if (m_thisStrum[m_StrumNumber].play)
                 {
-
-                    //Debug.Log(m_name + " play " + m_CurrentChord.name + " seg " +  m_thisStrum[m_StrumNumber].Segment);
                     m_audio.PlayOneShot(m_CurrentChord.segments[m_thisStrum[m_StrumNumber].Segment], m_thisStrum[m_StrumNumber].volume);
 
                 }
