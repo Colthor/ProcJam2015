@@ -100,8 +100,20 @@ namespace ProcJammer
         {
             foreach(SongPartSpec sps in specs)
             {
-                Strum[] strumPattern = GenerateStrumPattern(m_BeatsPerMeasure);
-                int[] chordPattern = GenerateChordPattern(sps.MinChords, sps.MaxChords);
+                Strum[] strumPattern;
+                int[] chordPattern;
+                if(sps.Name != "silence")
+                {
+                    strumPattern = GenerateStrumPattern(m_BeatsPerMeasure);
+                    chordPattern = GenerateChordPattern(sps.MinChords, sps.MaxChords);
+                }
+                else
+                {
+                    strumPattern = new Strum[1];
+                    strumPattern[0].time = 2f;
+                    strumPattern[0].play = false;
+                    chordPattern = new int[]{ 0};
+                }
 
                 m_songParts.Add(sps.Name, new SongPart(strumPattern, chordPattern));
             }
@@ -221,11 +233,13 @@ namespace ProcJammer
             {
                 m_ResetChordProg = false;
                 m_CurrentChordIndex = 0;
+                m_ChordProgIndex = 0;
                 m_ChordProgression = m_songParts[m_CurrentSegment].ChordProgression;
             }
             else
             {
-                m_ChordProgIndex = (m_ChordProgIndex + 1) % (m_ChordProgression.GetUpperBound(0)+1);
+                m_ChordProgIndex++; // = (m_ChordProgIndex + 1) % (m_ChordProgression.GetUpperBound(0)+1);
+                if (m_ChordProgIndex > m_ChordProgression.GetUpperBound(0)) m_ChordProgIndex = 0; //modulo doesn't work if upper=0.
             }
             m_CurrentChordIndex = m_ChordProgression[m_ChordProgIndex];// Random.Range(0, 5);
            /* if (Random.value < 0.1f)

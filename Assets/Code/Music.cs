@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-//using System.Collections;
+using System.Collections.Generic;
 using ProcJammer;
 
 [RequireComponent(typeof (AudioSource))]
@@ -21,6 +21,21 @@ public class Music : MonoBehaviour
     private int MeasureNumber;
     private bool NewMeasurePrepped = false;
 
+    private struct SongStructure
+    {
+        public SongStructure(string name, int len)
+        {
+            section = name;
+            length = len;
+        }
+        public string section;
+        public int length;
+    };
+
+    private List<SongStructure> m_SongStructure;
+    private SongPartSpec[] m_SongSpec;
+    private int m_PartMeasure;
+    private int m_CurrentPart;
 
     System.Collections.Generic.List<Instrument> m_Instruments = new System.Collections.Generic.List<Instrument>();
 
@@ -32,6 +47,44 @@ public class Music : MonoBehaviour
         ChordSegments[1] = Resources.Load<AudioClip>("sound/chords/" + name.ToLower() + "_up");
         return new Chord(name, ChordSegments );
 
+    }
+
+    void CreateSong()
+    {
+        m_SongSpec = new SongPartSpec[5];
+        m_SongSpec[0].Name = "verse";
+        m_SongSpec[0].MinChords = 4;
+        m_SongSpec[0].MaxChords = 4;
+        m_SongSpec[1].Name = "chorus";
+        m_SongSpec[1].MinChords = 3;
+        m_SongSpec[1].MaxChords = 5;
+        m_SongSpec[2].Name = "bridge";
+        m_SongSpec[2].MinChords = 2;
+        m_SongSpec[2].MaxChords = 4;
+        m_SongSpec[3].Name = "intro";
+        m_SongSpec[3].MinChords = 2;
+        m_SongSpec[3].MaxChords = 4;
+        m_SongSpec[4].Name = "silence";
+        m_SongSpec[4].MinChords = 2;
+        m_SongSpec[4].MaxChords = 4;
+        m_CurrentPart = 0;
+        m_PartMeasure = 0;
+        m_SongStructure = new List<SongStructure>();
+        m_SongStructure.Add(new SongStructure("silence", 1));
+        m_SongStructure.Add(new SongStructure("intro", 4));
+        m_SongStructure.Add(new SongStructure("verse", 16));
+        m_SongStructure.Add(new SongStructure("chorus", 8));
+        m_SongStructure.Add(new SongStructure("verse", 16));
+        m_SongStructure.Add(new SongStructure("chorus", 8));
+        m_SongStructure.Add(new SongStructure("bridge", 4));
+        m_SongStructure.Add(new SongStructure("verse", 16));
+        m_SongStructure.Add(new SongStructure("chorus", 8));
+        m_SongStructure.Add(new SongStructure("silence", 1));
+        foreach (Instrument i in m_Instruments)
+        { 
+            i.GenerateSongParts(m_SongSpec);
+            i.InitWithSegment(m_SongStructure[m_CurrentPart].section);
+        }
     }
 
     void CreateInstruments()
@@ -58,19 +111,6 @@ public class Music : MonoBehaviour
 
         guitar.AddKey("Am", Am_Chords);
 
-        SongPartSpec[] sps = new SongPartSpec[3];
-        sps[0].Name = "verse";
-        sps[0].MinChords = 4;
-        sps[0].MaxChords = 4;
-        sps[1].Name = "chorus";
-        sps[1].MinChords = 3;
-        sps[1].MaxChords = 5;
-        sps[2].Name = "bridge";
-        sps[2].MinChords = 2;
-        sps[2].MaxChords = 4;
-        guitar.GenerateSongParts(sps);
-        guitar.InitWithSegment("verse");
-
         m_Instruments.Add(guitar);
     }
 
@@ -94,6 +134,7 @@ public class Music : MonoBehaviour
     void Start ()
     {
         CreateInstruments();
+        CreateSong();
         CalcMeasureLength();
         MeasureNumber = 0;
     }
@@ -119,6 +160,16 @@ public class Music : MonoBehaviour
         }
     }
 
+    void AdvanceSong()
+    {
+        m_PartMeasure++;
+        if(m_PartMeasure >= m_SongStructure[m_CurrentPart].length)
+        {
+            m_PartMeasure = 0;
+            m_CurrentPart = (m_CurrentPart + 1) % (m_SongStructure.Count);
+            Debug.Log("Playing " + m_SongStructure[m_CurrentPart].section + " for " + m_SongStructure[m_CurrentPart].length + " bars.");
+        }
+    }
 
     void FixedUpdate()
     {
@@ -127,10 +178,11 @@ public class Music : MonoBehaviour
 
         if (MeasureTime > 0.8f && !NewMeasurePrepped) // * MeasureLength && false == NewMeasurePrepped)
         {
+            AdvanceSong();
             foreach (Instrument i in m_Instruments)
             {
                 SetInstrumentValues(i);
-                i.PrepNextMeasure("verse");
+                i.PrepNextMeasure(m_SongStructure[m_CurrentPart].section);
             }
             NewMeasurePrepped = true;
         }
