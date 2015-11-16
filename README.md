@@ -1,5 +1,5 @@
 # ProcJam2015 - ProcJammer
-This is my procedural music generation (or jammer) library, made for ProcJam 2015. It generates a song and strums along to it on a guitar.
+This is my procedural music generation (or jammer) library, made for ProcJam 2015. It generates a song and strums along to it on a guitar. <a href="http://colthor.itch.io/procjammer">There is a demo on itch.io here</a>.
 
 Feel free to use it, and the guitar samples, for any purpose you like. A credit would be nice if it winds up in something publically available :)
 
